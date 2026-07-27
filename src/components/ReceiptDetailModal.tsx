@@ -21,7 +21,6 @@ export const ReceiptDetailModal: React.FC<ReceiptDetailModalProps> = ({
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
 
   // Edit form states
-  const [store, setStore] = useState(receipt.store);
   const [date, setDate] = useState(receipt.date);
   const [total, setTotal] = useState(String(receipt.total));
   const [category, setCategory] = useState<CategoryType>(receipt.category);
@@ -42,7 +41,7 @@ export const ReceiptDetailModal: React.FC<ReceiptDetailModalProps> = ({
     try {
       await onUpdate({
         ...receipt,
-        store: store.trim(),
+        store: category,
         date,
         total: numTotal,
         category,
@@ -75,7 +74,7 @@ export const ReceiptDetailModal: React.FC<ReceiptDetailModalProps> = ({
         {/* Header */}
         <div className="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 flex items-center justify-between">
           <div>
-            <h3 className="text-2xl font-extrabold tracking-tight">{receipt.store}</h3>
+            <h3 className="text-2xl font-extrabold tracking-tight">{receipt.category}</h3>
             <p className="text-emerald-100 text-sm mt-0.5 font-medium">{receipt.date}</p>
           </div>
           <button
@@ -96,7 +95,7 @@ export const ReceiptDetailModal: React.FC<ReceiptDetailModalProps> = ({
                 <h4 className="font-bold text-lg">Czy na pewno usunąć?</h4>
               </div>
               <p className="text-xs sm:text-sm text-rose-700 font-medium">
-                Ten paragon ze sklepu <strong>{receipt.store}</strong> ({formatPLN(receipt.total)}) zostanie trwale usunięty z pamięci urządzenia.
+                Wydatek <strong>{receipt.category}</strong> ({formatPLN(receipt.total)}) z dnia {receipt.date} zostanie trwale usunięty z pamięci urządzenia.
               </p>
               <div className="flex space-x-3 pt-2">
                 <button
@@ -118,16 +117,21 @@ export const ReceiptDetailModal: React.FC<ReceiptDetailModalProps> = ({
           ) : isEditing ? (
             /* Edit Form */
             <form onSubmit={handleSaveEdit} className="space-y-4">
-              <h4 className="font-bold text-lg text-slate-900 border-b pb-2">Edytuj dane paragonu</h4>
+              <h4 className="font-bold text-lg text-slate-900 border-b pb-2">Edytuj dane wydatek</h4>
+
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Sklep</label>
-                <input
-                  type="text"
-                  value={store}
-                  onChange={(e) => setStore(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-xl font-semibold text-sm bg-slate-50 focus:bg-white"
-                  required
-                />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Kategoria</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as CategoryType)}
+                  className="w-full px-3 py-2 border rounded-xl text-sm bg-slate-50 focus:bg-white font-semibold"
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -213,10 +217,6 @@ export const ReceiptDetailModal: React.FC<ReceiptDetailModalProps> = ({
 
               {/* Details grid */}
               <div className="space-y-3 text-sm text-slate-700 font-medium">
-                <div className="flex items-center space-x-3">
-                  <Store className="w-5 h-5 text-slate-400 shrink-0" />
-                  <span>Sklep: <strong className="text-slate-900">{receipt.store}</strong></span>
-                </div>
                 <div className="flex items-center space-x-3">
                   <Calendar className="w-5 h-5 text-slate-400 shrink-0" />
                   <span>Data zakupu: <strong className="text-slate-900">{receipt.date}</strong></span>

@@ -21,7 +21,6 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
 
   // Form state
   const [showForm, setShowForm] = useState(false);
-  const [store, setStore] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [total, setTotal] = useState('');
   const [category, setCategory] = useState<CategoryType>('Spożywcze');
@@ -61,7 +60,6 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
   const handleOpenManual = () => {
     setPreviewImage(null);
     setSuccessMessage(null);
-    setStore('');
     setDate(new Date().toISOString().split('T')[0]);
     setTotal('');
     setCategory('Spożywcze');
@@ -72,10 +70,6 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
   // Submit and save receipt
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!store.trim()) {
-      alert('Proszę podać nazwę sklepu.');
-      return;
-    }
     const numTotal = parseFloat(total.replace(',', '.'));
     if (isNaN(numTotal) || numTotal <= 0) {
       alert('Proszę podać prawidłową kwotę wydatku w PLN.');
@@ -85,7 +79,7 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
     setIsSaving(true);
     try {
       await onSaveReceipt({
-        store: store.trim(),
+        store: category,
         date: date || new Date().toISOString().split('T')[0],
         total: numTotal,
         category,
@@ -94,7 +88,7 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
         imageUrl: previewImage || undefined,
       });
 
-      setSuccessMessage(`Zapisano paragon ze sklepu "${store}" na kwotę ${formatPLN(numTotal)}!`);
+      setSuccessMessage(`Zapisano wydatek (${category}) na kwotę ${formatPLN(numTotal)}!`);
       setShowForm(false);
       setPreviewImage(null);
 
@@ -210,12 +204,12 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
               <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-                {previewImage ? 'Wypełnij dane z paragonu' : 'Formularz paragonu'}
+                {previewImage ? 'Wypełnij dane z paragonu' : 'Formularz wydatek'}
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                 {previewImage
-                  ? 'Zdjęcie paragonu zostało załączone. Wpisz sklep, datę i kwotę poniżej.'
-                  : 'Wypełnij pola poniżej i naciśnij Zapisz.'}
+                  ? 'Zdjęcie paragonu zostało załączone. Wpisz datę, kwotę i wybierz kategorię poniżej.'
+                  : 'Podaj kwotę, wybierz kategorię i datę zakupu.'}
               </p>
             </div>
             <button
@@ -260,34 +254,6 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
 
           {/* Form Fields */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Sklep */}
-            <div>
-              <label className="block text-sm sm:text-base font-bold text-slate-800 mb-1.5">
-                Nazwa Sklepu <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={store}
-                onChange={(e) => setStore(e.target.value)}
-                placeholder="np. Biedronka, Lidl, Rossmann"
-                required
-                className="w-full text-base sm:text-lg font-semibold px-4 py-3.5 bg-slate-50 border-2 border-slate-300 rounded-2xl focus:border-emerald-600 focus:bg-white focus:outline-none transition"
-              />
-              {/* Quick store preset buttons */}
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                <span className="text-xs text-slate-500 self-center mr-1">Szybki wybór:</span>
-                {COMMON_STORES.slice(0, 7).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setStore(s)}
-                    className="text-xs font-semibold px-2.5 py-1 bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-700 rounded-lg transition"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
 
             {/* Data i Kwota */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

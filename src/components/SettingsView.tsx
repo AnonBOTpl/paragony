@@ -8,7 +8,8 @@ import {
   Trash2,
   CheckCircle2,
   AlertTriangle,
-  Info,
+  RotateCw,
+  Sparkles,
 } from 'lucide-react';
 import { StorageStatus } from '../types';
 import { requestStoragePersistence } from '../lib/storage';
@@ -32,6 +33,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // Status messages
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
+
+  // Check for app update & bust cache
+  const handleCheckForUpdate = async () => {
+    setIsCheckingUpdate(true);
+    setStatusMsg({
+      type: 'success',
+      text: 'Sprawdzanie dostępności nowej wersji i czyszczenie pamięci podręcznej...',
+    });
+
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+    } catch (err) {
+      console.warn('Błąd przy czyszczeniu cache:', err);
+    } finally {
+      setTimeout(() => {
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('update', Date.now().toString());
+        window.location.href = currentUrl.toString();
+      }, 700);
+    }
+  };
 
   // Handle persistence button
   const handleEnablePersistence = async () => {
@@ -252,6 +284,33 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <span>Przywróć kopię z pliku</span>
           </button>
         </div>
+      </div>
+
+      {/* Section 3: Check for Updates */}
+      <div className="glass-card rounded-3xl p-6 space-y-4 border-2 border-blue-200 bg-gradient-to-r from-blue-50/60 to-indigo-50/60">
+        <div className="flex items-center space-x-3">
+          <div className="bg-blue-600 p-3 rounded-2xl text-white">
+            <RotateCw className={`w-7 h-7 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <span>Aktualizacja Aplikacji</span>
+              <Sparkles className="w-5 h-5 text-amber-500 fill-amber-400" />
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 font-medium">
+              Wymuś pobranie najnowszej wersji ze serwera bez czyszczenia historii paragonów
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleCheckForUpdate}
+          disabled={isCheckingUpdate}
+          className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black py-4 px-5 rounded-2xl shadow-md transition flex items-center justify-center space-x-2 text-base touch-manipulation"
+        >
+          <RotateCw className={`w-5 h-5 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+          <span>{isCheckingUpdate ? 'Sprawdzanie i odświeżanie...' : 'Sprawdź czy jest nowa wersja'}</span>
+        </button>
       </div>
 
       {/* Danger Zone: Clear database */}
