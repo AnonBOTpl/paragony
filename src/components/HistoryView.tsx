@@ -139,37 +139,10 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
       ) : selectedMonth === null ? (
         /* CASE 2: MAIN VIEW - LIST OF ALL MONTHS WITH TOTALS & CATEGORIES */
         <div className="space-y-6 animate-fade-in">
-          {/* Top Header */}
-          <div className="bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl space-y-4 relative overflow-hidden">
-            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                Historia wydatków
-              </h2>
-              <p className="text-blue-100 text-xs sm:text-sm mt-1">
-                Zestawienie według miesięcy z podziałem na kategorie
-              </p>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-white/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-inner">
-              <div>
-                <span className="text-xs uppercase font-extrabold text-blue-200 tracking-wider">
-                  Suma ze wszystkich miesięcy
-                </span>
-                <div className="text-3xl sm:text-4xl font-black text-white mt-0.5">
-                  {formatPLN(totalAllTime)}
-                </div>
-              </div>
-              <div className="text-blue-100 text-xs sm:text-sm font-extrabold bg-white/15 px-3.5 py-1.5 rounded-xl self-start sm:self-center border border-white/10">
-                Łącznie {receipts.length} {receipts.length === 1 ? 'wydatek' : 'wydatków'}
-              </div>
-            </div>
-          </div>
-
           {/* Section Title */}
           <div className="flex justify-between items-center px-1">
-            <h3 className="text-lg font-black text-slate-900">
-              Miesiące ({monthsData.length})
+            <h3 className="text-xl font-black text-slate-900">
+              Historia miesięcy ({monthsData.length})
             </h3>
             <span className="text-xs text-slate-500 font-bold">
               Kliknij miesiąc, aby zobaczyć wpisy
