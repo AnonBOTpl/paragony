@@ -1,5 +1,5 @@
 import { ReceiptItem } from '../types';
-import { auth, db, ensureAuth } from './firebase';
+import { db, ensureAuth } from './firebase';
 import {
   collection,
   doc,
@@ -13,6 +13,17 @@ import {
 const DB_NAME = 'BudzetMamyDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'receipts';
+
+// Utility to clean objects for Firestore (removes undefined fields)
+function cleanForFirestore<T>(obj: T): any {
+  if (obj === null || obj === undefined) return null;
+  return JSON.parse(
+    JSON.stringify(obj, (_key, value) => {
+      if (value === undefined) return null;
+      return value;
+    })
+  );
+}
 
 // Local IndexedDB fallback / local cache
 function openDB(): Promise<IDBDatabase> {
@@ -83,6 +94,9 @@ async function getLocalCache(): Promise<ReceiptItem[]> {
 }
 
 export async function getAllReceipts(): Promise<ReceiptItem[]> {
+  let firestoreItems: ReceiptItem[] = [];
+  let fetchedFromFirestore = false;
+
   try {
     const user = await ensureAuth();
     if (user) {
@@ -90,10 +104,9 @@ export async function getAllReceipts(): Promise<ReceiptItem[]> {
       const q = query(receiptsRef, where('userId', '==', user.uid));
       const querySnapshot = await getDocs(q);
 
-      const items: ReceiptItem[] = [];
       querySnapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        items.push({
+        firestoreItems.push({
           id: docSnap.id,
           store: data.store || data.category || 'Wydatek',
           date: data.date || new Date().toISOString().split('T')[0],
@@ -107,32 +120,58 @@ export async function getAllReceipts(): Promise<ReceiptItem[]> {
         });
       });
 
-      items.sort((a, b) => {
+      firestoreItems.sort((a, b) => {
         if (b.date !== a.date) return b.date.localeCompare(a.date);
         return b.createdAt - a.createdAt;
       });
 
-      // Save to local cache for instant offline view
-      await saveLocalCache(items);
-      return items;
+      fetchedFromFirestore = true;
     }
   } catch (err) {
     console.warn('Firebase pobieranie nie powiodło się, używam pamięci lokalnej:', err);
   }
 
-  // Fallback to local cache if offline or error
-  return await getLocalCache();
+  const localItems = await getLocalCache();
+
+  if (fetchedFromFirestore) {
+    if (firestoreItems.length > 0) {
+      await saveLocalCache(firestoreItems);
+      return firestoreItems;
+    } else if (localItems.length > 0) {
+      // Local items exist but Firestore returned empty (e.g. newly logged in user or imported locally)
+      // Auto-sync local items up to Firestore!
+      try {
+        const user = await ensureAuth();
+        if (user) {
+          for (const item of localItems) {
+            const docRef = doc(db, 'receipts', item.id);
+            const dataToSave = cleanForFirestore({
+              ...item,
+              userId: user.uid,
+            });
+            await setDoc(docRef, dataToSave);
+          }
+        }
+      } catch (e) {
+        console.warn('Automatyczny upload lokalnych danych do Firestore nie powiódł się:', e);
+      }
+      return localItems;
+    }
+    return [];
+  }
+
+  return localItems;
 }
 
 export async function addReceipt(
-  receipt: Omit<ReceiptItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+  receipt: Omit<ReceiptItem, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; createdAt?: number }
 ): Promise<ReceiptItem> {
   const now = Date.now();
   const id = receipt.id || `rec_${now}_${Math.random().toString(36).slice(2, 7)}`;
   const newItem: ReceiptItem = {
     ...receipt,
     id,
-    createdAt: now,
+    createdAt: receipt.createdAt || now,
     updatedAt: now,
   };
 
@@ -140,10 +179,11 @@ export async function addReceipt(
     const user = await ensureAuth();
     if (user) {
       const docRef = doc(db, 'receipts', id);
-      await setDoc(docRef, {
+      const dataToSave = cleanForFirestore({
         ...newItem,
         userId: user.uid,
       });
+      await setDoc(docRef, dataToSave);
     }
   } catch (err) {
     console.warn('Zapis do Firebase nie powiódł się, zapisuję lokalnie:', err);
@@ -171,14 +211,11 @@ export async function updateReceipt(receipt: ReceiptItem): Promise<ReceiptItem> 
     const user = await ensureAuth();
     if (user) {
       const docRef = doc(db, 'receipts', receipt.id);
-      await setDoc(
-        docRef,
-        {
-          ...updatedItem,
-          userId: user.uid,
-        },
-        { merge: true }
-      );
+      const dataToSave = cleanForFirestore({
+        ...updatedItem,
+        userId: user.uid,
+      });
+      await setDoc(docRef, dataToSave, { merge: true });
     }
   } catch (err) {
     console.warn('Aktualizacja w Firebase nie powiodła się:', err);
@@ -267,18 +304,19 @@ export async function importData(jsonString: string): Promise<number> {
         const rawProducts = item.items ?? item.products ?? item.pozycje ?? item.produkty ?? [];
         const productsList = Array.isArray(rawProducts) ? rawProducts : [];
 
-        // Generate fresh ID so Firestore accepts creation under current logged-in user
-        const newDocId = `rec_${now}_${idx}_${Math.random().toString(36).slice(2, 7)}`;
+        // Preserve original ID or generate new
+        const docId = item.id || `rec_${now}_${idx}_${Math.random().toString(36).slice(2, 7)}`;
 
         await addReceipt({
-          id: newDocId,
+          id: docId,
           store: item.store || item.sklep || item.shop || item.vendor || item.name || item.category || 'Wydatek',
           date: item.date || item.data || new Date().toISOString().split('T')[0],
           total: numericTotal,
           category: item.category || item.kategoria || 'Inne',
           notes: item.notes || item.uwagi || item.note || item.description || '',
           items: productsList,
-          imageUrl: item.imageUrl || item.image || item.zdjecie || undefined,
+          imageUrl: item.imageUrl || item.image || item.zdjecie || '',
+          createdAt: item.createdAt || now - idx * 1000,
         });
 
         importedCount++;
