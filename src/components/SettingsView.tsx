@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -10,10 +10,16 @@ import {
   AlertTriangle,
   RotateCw,
   Sparkles,
+  Cloud,
+  CloudCheck,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { StorageStatus } from '../types';
 import { requestStoragePersistence } from '../lib/storage';
 import { exportAllData, importData, clearAllData } from '../lib/db';
+import { auth, loginWithGoogle, logoutUser } from '../lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
 
 interface SettingsViewProps {
   storageStatus: StorageStatus;
@@ -34,6 +40,44 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(auth.currentUser);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+      await refreshReceipts();
+      setStatusMsg({
+        type: 'success',
+        text: 'Zalogowano przez Google! Twoje dane są teraz zsynchronizowane z Twoim kontem Google.',
+      });
+    } catch (err: any) {
+      console.error(err);
+      setStatusMsg({
+        type: 'error',
+        text: `Błąd logowania Google: ${err.message}`,
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      await refreshReceipts();
+      setStatusMsg({
+        type: 'success',
+        text: 'Wylogowano z konta Google.',
+      });
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
 
   // Check for app update & bust cache
   const handleCheckForUpdate = async () => {
@@ -192,6 +236,61 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <p>{statusMsg.text}</p>
         </div>
       )}
+
+      {/* Section 0: Cloud Sync / Firebase Status */}
+      <div className="glass-card rounded-3xl p-6 space-y-4 border-2 border-emerald-200 bg-gradient-to-r from-emerald-50/70 to-teal-50/70">
+        <div className="flex items-center space-x-3">
+          <div className="bg-emerald-600 p-3 rounded-2xl text-white">
+            <CloudCheck className="w-7 h-7" />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <span>Synchronizacja Chmurowa (Firebase)</span>
+              <span className="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-extrabold border border-emerald-300">
+                Aktywna
+              </span>
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 font-medium">
+              Twoje dane są bezpiecznie zapisywane w chmurze Firebase Firestore ({user?.isAnonymous ? 'Sesja anonimowa' : user?.email || 'Konto Google'})
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white/80 backdrop-blur p-4 rounded-2xl border border-emerald-200 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Status konta chmurowego:
+              </p>
+              <p className="text-sm font-extrabold text-slate-900 mt-0.5">
+                {user ? (user.isAnonymous ? 'Sesja automatyczna (ID: ' + user.uid.substring(0, 8) + '...)' : `Zalogowano jako: ${user.email}`) : 'Łączenie z chmurą...'}
+              </p>
+            </div>
+
+            {user && !user.isAnonymous ? (
+              <button
+                onClick={handleLogout}
+                className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-extrabold px-4 py-2 rounded-xl text-xs transition flex items-center gap-1.5 self-start sm:self-center"
+              >
+                <LogOut className="w-4 h-4 text-slate-600" />
+                <span>Wyloguj</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleGoogleLogin}
+                className="bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center gap-2 shadow-sm self-start sm:self-center touch-manipulation"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Zaloguj kontem Google (Sync)</span>
+              </button>
+            )}
+          </div>
+
+          <p className="text-xs text-slate-600 font-medium leading-relaxed">
+            Nawet jeśli wyczyścisz historię przeglądarki lub zmienisz telefon, zalogowanie się z tego samego konta w chmurze pozwoli błyskawicznie odzyskać wszystkie Twoje wydatki!
+          </p>
+        </div>
+      </div>
 
       {/* Section 1: Local-First & Memory Cleaner Protection */}
       <div className="glass-card rounded-3xl p-6 space-y-4">

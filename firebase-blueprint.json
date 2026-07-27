@@ -1,0 +1,22 @@
+{
+  "entities": {
+    "Receipt": {
+      "title": "Receipt",
+      "description": "Domowy wydatek / paragon użytkownika",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "store": { "type": "string" },
+        "date": { "type": "string" },
+        "total": { "type": "number" },
+        "category": { "type": "string" },
+        "notes": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "userId", "date", "total", "category"]
+    }
+  }
+}
