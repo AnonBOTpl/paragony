@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Edit3, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle, X, Sparkles, Plus, ZoomIn } from 'lucide-react';
+import { Camera, Edit3, Image as ImageIcon, CheckCircle2, X, ZoomIn, Loader2 } from 'lucide-react';
 import { CategoryType, CATEGORIES, ReceiptItem } from '../types';
-import { scanReceiptImage, ScanResult } from '../lib/api';
-import { COMMON_STORES, CATEGORY_INFO } from '../lib/categories';
+import { COMMON_STORES } from '../lib/categories';
 import { formatPLN } from '../lib/storage';
 
 interface ScanAndAddViewProps {
@@ -17,8 +16,6 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // States
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [showImageZoom, setShowImageZoom] = useState(false);
 
@@ -29,14 +26,13 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
   const [total, setTotal] = useState('');
   const [category, setCategory] = useState<CategoryType>('Spożywcze');
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<Array<{ name: string; price?: number }>>([]);
+  const [items] = useState<Array<{ name: string; price?: number }>>([]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Trigger file camera/upload
   const handleTriggerUpload = () => {
-    setScanError(null);
     setSuccessMessage(null);
     if (fileInputRef.current) {
       fileInputRef.current.click();
@@ -51,56 +47,25 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
     // Reset input value so same file can be selected again
     event.target.value = '';
 
-    // Convert file to base64
+    // Convert file to base64 and open form for quick manual confirmation
     const reader = new FileReader();
-    reader.onload = async () => {
+    reader.onload = () => {
       const base64Str = reader.result as string;
       setPreviewImage(base64Str);
-      await processReceiptImage(base64Str, file.type || 'image/jpeg');
+      setShowForm(true);
     };
     reader.readAsDataURL(file);
-  };
-
-  // Call Vision AI API
-  const processReceiptImage = async (base64Data: string, mimeType: string) => {
-    setIsScanning(true);
-    setScanError(null);
-    try {
-      const result: ScanResult = await scanReceiptImage(base64Data, mimeType);
-
-      // Populate form
-      setStore(result.store || '');
-      setDate(result.date || new Date().toISOString().split('T')[0]);
-      setTotal(result.total !== undefined && result.total !== null ? String(result.total) : '');
-      setCategory(result.category && CATEGORIES.includes(result.category) ? result.category : 'Spożywcze');
-      setNotes(result.notes || '');
-      setItems(result.items || []);
-
-      setShowForm(true);
-    } catch (err: any) {
-      console.error('Błąd skanowania:', err);
-      setScanError(
-        err.message ||
-          'Nie udało się automatycznie odczytać danych ze zdjęcia. Możesz wpisać dane ręcznie.'
-      );
-      // Open form anyway for manual editing
-      setShowForm(true);
-    } finally {
-      setIsScanning(false);
-    }
   };
 
   // Open clean form manually
   const handleOpenManual = () => {
     setPreviewImage(null);
-    setScanError(null);
     setSuccessMessage(null);
     setStore('');
     setDate(new Date().toISOString().split('T')[0]);
     setTotal('');
     setCategory('Spożywcze');
     setNotes('');
-    setItems([]);
     setShowForm(true);
   };
 
@@ -184,7 +149,7 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
           Dodaj nowy paragon
         </h2>
         <p className="text-blue-100 text-sm sm:text-base mt-1.5 leading-relaxed">
-          Zrób zdjęcie paragonu, a sztuczna inteligencja odczyta sklep, datę i kwotę. Możesz też dodać wydatek ręcznie.
+          Wybierz opcję poniżej, aby wpisać dane z paragonu. Możesz też załączyć zdjęcie z aparatu lub galerii.
         </p>
       </div>
 
@@ -194,23 +159,22 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
         <button
           type="button"
           onClick={handleTriggerUpload}
-          disabled={isScanning}
           className="group relative bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white p-6 sm:p-8 rounded-3xl shadow-md hover:shadow-xl transition-all duration-200 text-left flex flex-col justify-between border border-blue-400/40 touch-manipulation min-h-[160px]"
         >
           <div className="flex items-center justify-between w-full">
             <div className="bg-white/20 group-hover:bg-white/30 p-3.5 rounded-2xl transition-transform group-hover:scale-105 border border-white/20">
               <Camera className="w-10 h-10 text-white" />
             </div>
-            <span className="bg-blue-900/80 text-blue-100 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-blue-400/30 flex items-center gap-1 shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Vision AI
+            <span className="bg-blue-900/80 text-blue-100 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-blue-400/30 shadow-sm">
+              Aparat / Zdjęcie
             </span>
           </div>
           <div>
             <h3 className="text-xl sm:text-2xl font-black mt-4 leading-tight">
-              Zrób zdjęcie / Dodaj paragon
+              Załącz zdjęcie paragonu
             </h3>
             <p className="text-blue-100 text-xs sm:text-sm mt-1">
-              Uruchamia aparat lub pozwala wybrać zdjęcie z galerii
+              Zrób zdjęcie z aparatu lub wybierz plik z galerii
             </p>
           </div>
         </button>
@@ -219,7 +183,6 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
         <button
           type="button"
           onClick={handleOpenManual}
-          disabled={isScanning}
           className="group relative glass-card glass-card-hover hover:bg-slate-50 active:bg-slate-100 text-slate-800 p-6 sm:p-8 rounded-3xl text-left flex flex-col justify-between touch-manipulation min-h-[160px]"
         >
           <div className="flex items-center justify-between w-full">
@@ -235,49 +198,23 @@ export const ScanAndAddView: React.FC<ScanAndAddViewProps> = ({
               Dodaj ręcznie
             </h3>
             <p className="text-slate-500 text-xs sm:text-sm mt-1">
-              Wpisz dane samodzielnie w czystym formularzu
+              Wpisz dane w czystym formularzu bez zdjęcia
             </p>
           </div>
         </button>
       </div>
 
-      {/* Scanning loading screen overlay */}
-      {isScanning && (
-        <div className="bg-white border-2 border-emerald-500 p-8 rounded-3xl shadow-2xl text-center space-y-4 animate-fade-in">
-          <div className="inline-flex p-4 rounded-full bg-emerald-50 text-emerald-700 animate-spin">
-            <Loader2 className="w-12 h-12" />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-slate-900">
-            Trwa analiza paragonu przez AI...
-          </h3>
-          <p className="text-slate-600 max-w-md mx-auto text-sm sm:text-base">
-            Prosimy o chwilę cierpliwości. Odczytujemy nazwę sklepu, datę zakupu oraz łączną kwotę w PLN.
-          </p>
-        </div>
-      )}
-
-      {/* Scan Error Notice */}
-      {scanError && !isScanning && (
-        <div className="bg-amber-50 border-2 border-amber-400 p-4 rounded-2xl text-amber-900 flex items-start space-x-3">
-          <AlertCircle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-          <div className="text-sm sm:text-base">
-            <p className="font-bold">Informacja od skanera:</p>
-            <p className="mt-0.5">{scanError}</p>
-          </div>
-        </div>
-      )}
-
       {/* Form / Preview Modal Card */}
-      {showForm && !isScanning && (
-        <div className="bg-white rounded-3xl shadow-xl border-2 border-emerald-500/40 p-5 sm:p-8 space-y-6 animate-fade-in">
+      {showForm && (
+        <div className="bg-white rounded-3xl shadow-xl border-2 border-blue-500/40 p-5 sm:p-8 space-y-6 animate-fade-in">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div>
               <h3 className="text-xl sm:text-2xl font-extrabold text-slate-900">
-                {previewImage ? 'Sprawdź dane z paragonu' : 'Formularz paragonu'}
+                {previewImage ? 'Wypełnij dane z paragonu' : 'Formularz paragonu'}
               </h3>
               <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                 {previewImage
-                  ? 'Przejrzyj odczytane wartości. Możesz dowolnie poprawić dowolne pole przed zapisaniem.'
+                  ? 'Zdjęcie paragonu zostało załączone. Wpisz sklep, datę i kwotę poniżej.'
                   : 'Wypełnij pola poniżej i naciśnij Zapisz.'}
               </p>
             </div>

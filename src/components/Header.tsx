@@ -20,7 +20,7 @@ export const Header: React.FC<HeaderProps> = ({ storageStatus, receiptCount }) =
               Budżet Mamy
             </h1>
             <p className="text-blue-100 text-xs sm:text-sm font-medium">
-              Skaner paragonów • Local-First (PWA)
+              Budżet Domowy • Offline Local-First
             </p>
           </div>
         </div>

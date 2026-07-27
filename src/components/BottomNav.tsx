@@ -1,7 +1,7 @@
 import React from 'react';
 import { Camera, ReceiptText, Sparkles, Settings } from 'lucide-react';
 
-export type TabType = 'add' | 'history' | 'ai' | 'settings';
+export type TabType = 'add' | 'history' | 'settings';
 
 interface BottomNavProps {
   activeTab: TabType;
@@ -12,7 +12,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
   const tabs = [
     {
       id: 'add' as TabType,
-      label: 'Dodaj / Skanuj',
+      label: 'Dodaj / Zrób zdjęcie',
       shortLabel: 'Dodaj',
       icon: Camera,
     },
@@ -21,12 +21,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
       label: 'Wydatki i Historia',
       shortLabel: 'Historia',
       icon: ReceiptText,
-    },
-    {
-      id: 'ai' as TabType,
-      label: 'Analiza AI',
-      shortLabel: 'Analiza AI',
-      icon: Sparkles,
     },
     {
       id: 'settings' as TabType,

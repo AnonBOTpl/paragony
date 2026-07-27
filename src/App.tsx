@@ -3,7 +3,6 @@ import { Header } from './components/Header';
 import { BottomNav, TabType } from './components/BottomNav';
 import { ScanAndAddView } from './components/ScanAndAddView';
 import { HistoryView } from './components/HistoryView';
-import { AiAnalysisView } from './components/AiAnalysisView';
 import { SettingsView } from './components/SettingsView';
 import { ReceiptItem, StorageStatus } from './types';
 import { getAllReceipts, addReceipt, updateReceipt, deleteReceipt } from './lib/db';
@@ -95,8 +94,6 @@ export default function App() {
                 onNavigateToAdd={() => setActiveTab('add')}
               />
             )}
-
-            {activeTab === 'ai' && <AiAnalysisView receipts={receipts} />}
 
             {activeTab === 'settings' && (
               <SettingsView

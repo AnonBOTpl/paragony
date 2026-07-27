@@ -4,18 +4,14 @@ import {
   ShieldAlert,
   Download,
   Upload,
-  Key,
   HardDrive,
   Trash2,
   CheckCircle2,
   AlertTriangle,
   Info,
-  Lock,
-  Eye,
-  EyeOff,
 } from 'lucide-react';
 import { StorageStatus } from '../types';
-import { requestStoragePersistence, saveCustomApiKey, getCustomApiKey } from '../lib/storage';
+import { requestStoragePersistence } from '../lib/storage';
 import { exportAllData, importData, clearAllData } from '../lib/db';
 
 interface SettingsViewProps {
@@ -32,11 +28,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   totalReceiptsCount,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Custom API Key states
-  const [apiKeyInput, setApiKeyInput] = useState<string>(getCustomApiKey());
-  const [showApiKey, setShowApiKey] = useState<boolean>(false);
-  const [apiKeySavedNotice, setApiKeySavedNotice] = useState<boolean>(false);
 
   // Status messages
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -113,13 +104,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     reader.readAsText(file);
   };
 
-  // Save Custom Gemini Key
-  const handleSaveApiKey = () => {
-    saveCustomApiKey(apiKeyInput);
-    setApiKeySavedNotice(true);
-    setTimeout(() => setApiKeySavedNotice(false), 4000);
-  };
-
   // Clear all database
   const handleClearAll = async () => {
     try {
@@ -155,7 +139,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           Bezpieczeństwo danych i Ustawienia
         </h2>
         <p className="text-blue-100 text-sm sm:text-base mt-1.5 leading-relaxed">
-          Zarządzaj trwałą ochroną pamięci, twórz pliki kopii zapasowej (JSON) i opcjonalnie dodaj własny klucz API.
+          Zarządzaj trwałą ochroną pamięci oraz twórz i przywracaj pliki kopii zapasowej (JSON).
         </p>
       </div>
 
@@ -267,70 +251,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <Upload className="w-5 h-5 text-slate-600" />
             <span>Przywróć kopię z pliku</span>
           </button>
-        </div>
-      </div>
-
-      {/* Section 3: Optional Custom Gemini API Key */}
-      <div className="glass-card rounded-3xl p-6 space-y-4">
-        <div className="flex items-center space-x-3">
-          <div className="bg-purple-100 p-3 rounded-2xl text-purple-800">
-            <Key className="w-7 h-7" />
-          </div>
-          <div>
-            <h3 className="text-xl font-black text-slate-900">
-              Własny Klucz Gemini API Key (Opcjonalnie)
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-500 font-medium">
-              Aplikacja posiada wbudowany klucz. Wpisz własny tylko jeśli chcesz korzystać z płatnego limitu.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="relative">
-            <input
-              type={showApiKey ? 'text' : 'password'}
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              placeholder="Wklej swój klucz API (np. AIzaSy...)"
-              className="w-full pr-12 pl-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-600 focus:bg-white"
-            />
-            <button
-              type="button"
-              onClick={() => setShowApiKey(!showApiKey)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-600"
-            >
-              {showApiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-            </button>
-          </div>
-
-          <div className="flex space-x-2">
-            <button
-              onClick={handleSaveApiKey}
-              className="bg-blue-700 hover:bg-blue-800 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition"
-            >
-              Zapisz Klucz
-            </button>
-            {apiKeyInput && (
-              <button
-                onClick={() => {
-                  setApiKeyInput('');
-                  saveCustomApiKey('');
-                  setApiKeySavedNotice(true);
-                  setTimeout(() => setApiKeySavedNotice(false), 3000);
-                }}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition"
-              >
-                Usuń Klucz
-              </button>
-            )}
-          </div>
-
-          {apiKeySavedNotice && (
-            <p className="text-xs font-bold text-blue-700">
-              Ustawienia klucza API zostały zaktualizowane w localStorage!
-            </p>
-          )}
         </div>
       </div>
 
