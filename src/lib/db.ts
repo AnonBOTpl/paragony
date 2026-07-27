@@ -232,32 +232,59 @@ export async function exportAllData(): Promise<string> {
 export async function importData(jsonString: string): Promise<number> {
   try {
     const parsed = JSON.parse(jsonString);
-    const receiptsToImport: ReceiptItem[] = Array.isArray(parsed)
+    const rawList = Array.isArray(parsed)
       ? parsed
       : Array.isArray(parsed.receipts)
       ? parsed.receipts
+      : Array.isArray(parsed.items)
+      ? parsed.items
+      : Array.isArray(parsed.data)
+      ? parsed.data
+      : Array.isArray(parsed.paragony)
+      ? parsed.paragony
       : null;
 
-    if (!receiptsToImport) {
-      throw new Error('Nieprawidłowy format pliku JSON kopii zapasowej.');
+    if (!rawList || !Array.isArray(rawList)) {
+      throw new Error('Nie znaleziono listy paragonów w pliku JSON.');
     }
 
     let importedCount = 0;
-    for (const item of receiptsToImport) {
-      if (item && typeof item.total === 'number') {
+    const now = Date.now();
+
+    for (let idx = 0; idx < rawList.length; idx++) {
+      const item = rawList[idx];
+      if (item && typeof item === 'object') {
+        // Parse total amount safely
+        const rawTotal = item.total ?? item.amount ?? item.kwota ?? item.totalAmount ?? item.sum ?? 0;
+        let numericTotal = 0;
+        if (typeof rawTotal === 'number') {
+          numericTotal = rawTotal;
+        } else if (typeof rawTotal === 'string') {
+          numericTotal = parseFloat(rawTotal.replace(',', '.')) || 0;
+        }
+
+        // Parse products if present
+        const rawProducts = item.items ?? item.products ?? item.pozycje ?? item.produkty ?? [];
+        const productsList = Array.isArray(rawProducts) ? rawProducts : [];
+
+        // Generate fresh ID so Firestore accepts creation under current logged-in user
+        const newDocId = `rec_${now}_${idx}_${Math.random().toString(36).slice(2, 7)}`;
+
         await addReceipt({
-          id: item.id,
-          store: item.store || item.category || 'Wydatek',
-          date: item.date || new Date().toISOString().split('T')[0],
-          total: Number(item.total) || 0,
-          category: item.category || 'Inne',
-          notes: item.notes || '',
-          items: Array.isArray(item.items) ? item.items : [],
-          imageUrl: item.imageUrl || undefined,
+          id: newDocId,
+          store: item.store || item.sklep || item.shop || item.vendor || item.name || item.category || 'Wydatek',
+          date: item.date || item.data || new Date().toISOString().split('T')[0],
+          total: numericTotal,
+          category: item.category || item.kategoria || 'Inne',
+          notes: item.notes || item.uwagi || item.note || item.description || '',
+          items: productsList,
+          imageUrl: item.imageUrl || item.image || item.zdjecie || undefined,
         });
+
         importedCount++;
       }
     }
+
     return importedCount;
   } catch (err: any) {
     throw new Error(`Błąd odczytu pliku kopii zapasowej: ${err.message}`);
