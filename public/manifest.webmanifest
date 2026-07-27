@@ -1,8 +1,9 @@
 {
-  "name": "Budżet Mamy & Skaner Paragonów",
+  "name": "Budżet Mamy",
   "short_name": "Budżet Mamy",
-  "description": "Prosta, czytelna aplikacja Local-First do prowadzenia domowego budżetu i skanowania paragonów z AI.",
-  "start_url": "/",
+  "description": "Prosta, czytelna aplikacja Local-First do prowadzenia domowego budżetu.",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f1f5f9",
   "theme_color": "#065f46",
