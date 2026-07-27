@@ -1,0 +1,6 @@
+{
+  "name": "Budżet Domowy i Paragon",
+  "description": "Prosta, czytelna aplikacja Local-First do prowadzenia domowego budżetu i skanowania paragonów z AI.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
